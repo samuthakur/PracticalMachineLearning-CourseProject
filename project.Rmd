@@ -1,0 +1,186 @@
+---
+title: 'Practicle Machine Learning: Course Project'
+author: "sapna"
+date: "Friday, July 24, 2015"
+output: html_document
+---
+##Introduction
+
+For this project we did the prediction analysis of a weight lifting exercise data set. The data set contains the measurments of a accelerometer on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The data set for this project com from <http://groupware.les.inf.puc-rio.br/har>  The goal of this project is to predict the manner in which the participants did the exercise.
+
+##Data Download and Reading
+
+```{r}
+## Data download
+trainUrl <-"http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+ download.file(trainUrl, destfile="./training.csv")
+ download.file(testUrl, destfile="./testing.csv")
+```
+
+```{r}
+## Data reading
+training <- read.csv("training.csv")
+testing <- read.csv("testing.csv")
+dim(training)
+dim(testing)
+```
+
+##Data Preprocessing and Cleaning
+
+In this step I removed some varibles that do not contribute much to the prediction model. First I identified and removed the varibles from the training data and then removed the same variables from the test data.
+
+```{r, message=FALSE}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(RColorBrewer)
+library(rattle)
+```
+
+ First I removed the variables with nearly zero variance.
+ 
+```{r} 
+### remove variables with nearly zero variance
+NZVdata <- nearZeroVar(training, saveMetrics=TRUE)
+nzv<-which(NZVdata$nzv==TRUE)
+training<-training[,-nzv]
+```
+Then I removed the variables with more than 60% NA values.
+
+```{r}
+### remove variables with more than 60% NA values
+naPob<-colSums(is.na(training))/nrow(training)
+colrm<-which(naPob>=0.6)
+training<-training[,-colrm]
+```
+And finally removed some useless variables that do not contribute to the prediction of varaible 'classe'.
+
+```{r}
+## remove variables which may not be important for prediction
+training<-training[,-(1:2)]
+```
+Also cleaned the test data.
+
+```{r}
+###cleaning the test data
+cleanCol <- colnames(training[, -57])
+testing <- testing[cleanCol]
+#To check the new number of observations
+dim(training)
+dim(testing)
+```
+
+##Data Slicing
+
+ I sliced the cleaned training data further into smaller training and testing data sets to train and validate the model and estimate the out of sample error.
+
+```{r}
+set.seed(543)
+## slice the cleaned training data into smaller training and test data
+inTrain <- createDataPartition(y=training$classe, p=0.6, list=FALSE)
+myTraining <- training[inTrain, ]
+myTesting <- training[-inTrain, ]
+dim(myTraining)
+dim(myTesting)
+```
+
+##Model Building and Selection
+
+I built two prediction models using two different ML algorithms and then selected the one with smallest out of sample error to do prediction. I used 5 fold cross-validation to estimates the errors.
+
+###Model training with Decision Tree
+
+```{r}
+## train using 5 fold CV
+fitControl <- trainControl(method="cv", number=5, verboseIter=F)
+modFit1 <- train(classe ~ .,method="rpart",data=myTraining, trControl=fitControl)
+modFit1
+```
+
+```{r}
+# In sample error = 35.9%
+```
+
+```{r}
+fancyRpartPlot(modFit1$finalModel)
+```
+
+###Model Training With Random Forests
+
+```{r}
+#modFit2 <- train(classe~ .,data=myTraining, method="rf",trControl=fitControl) ## it was taking long time to run
+modFit2<-randomForest(classe ~ ., data=myTraining, trControl=fitControl)
+modFit2
+```
+
+```{r}
+# In sample error = 0.21%
+```
+
+ I expect Random Forests to perform better as it has a very small in sample error/ estimate of out of sample error.
+ 
+Now I find the out of sample errors for the  two models.
+
+###Prediction with Decision Tree
+
+```{r}
+predict1 <- predict(modFit1, myTesting)
+confusionMatrix(predict1, myTesting$classe)
+```
+
+```{r}
+# Out of sample error is about 35 %
+```
+
+###Prediction with Random Forests
+
+```{r}
+predict2 <- predict(modFit2, myTesting)
+confusionMatrix(predict2, myTesting$classe)
+```
+
+```{r}
+# Out of sample error = 0.1 % 
+```
+
+AS expected, Random Forests performed way better than the other ML algorithm with minimum out of sample error(0.1%). So I fitted prediction model using Random Forests algorithm to predict the 'classe' variable .
+
+
+
+##Prediction using Test Data Set
+
+Before prediction, I made the testing data of the same type as training data because I was getting error that the two data sets are of not same type while running random forest.
+
+```{r}
+## make the two sets of same type
+testing<-rbind(myTraining[2,-57],testing)
+testing<-testing[-1,]
+```
+
+
+```{r}
+# predict with test set
+pred <- predict(modFit2, newdata=testing)
+pred
+```
+## Generating Files to submit for assignment
+
+```{r}
+# convert predictions to character vector
+pred <- as.character(pred)
+
+# function to write predictions to files
+pml_write_files <- function(x) {
+        n <- length(x)
+        for(i in 1:n) {
+                filename <- paste0("problem_id_", i, ".txt")
+                write.table(x[i], file=filename, quote=F, row.names=F, col.names=F)
+        }
+}
+
+# create prediction files to submit
+pml_write_files(pred)
+```
+
