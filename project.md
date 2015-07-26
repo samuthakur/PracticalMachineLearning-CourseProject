@@ -4,11 +4,11 @@ author: "sapna"
 date: "Friday, July 24, 2015"
 output: html_document
 ---
-##Introduction
+## Introduction
 
 For this project we did the prediction analysis of a weight lifting exercise data set. The data set contains the measurments of a accelerometer on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The data set for this project com from <http://groupware.les.inf.puc-rio.br/har>  The goal of this project is to predict the manner in which the participants did the exercise.
 
-##Data Download and Reading
+## Data Download and Reading
 
 
 ```r
@@ -39,7 +39,7 @@ dim(testing)
 ## [1]  20 160
 ```
 
-##Data Preprocessing and Cleaning
+## Data Preprocessing and Cleaning
 
 In this step I removed some varibles that do not contribute much to the prediction model. First I identified and removed the varibles from the training data and then removed the same variables from the test data.
 
@@ -101,7 +101,7 @@ dim(testing)
 ## [1] 20 56
 ```
 
-##Data Slicing
+## Data Slicing
 
  I sliced the cleaned training data further into smaller training and testing data sets to train and validate the model and estimate the out of sample error.
 
@@ -127,11 +127,11 @@ dim(myTesting)
 ## [1] 7846   57
 ```
 
-##Model Building and Selection
+## Model Building and Selection
 
 I built two prediction models using two different ML algorithms and then selected the one with smallest out of sample error to do prediction. I used 5 fold cross-validation to estimates the errors.
 
-###Model training with Decision Tree
+### Model training with Decision Tree
 
 
 ```r
@@ -174,7 +174,7 @@ fancyRpartPlot(modFit1$finalModel)
 
 ![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-1.png) 
 
-###Model Training With Random Forests
+### Model Training With Random Forests
 
 
 ```r
@@ -210,7 +210,7 @@ modFit2
  
 Now I find the out of sample errors for the  two models.
 
-###Prediction with Decision Tree
+### Prediction with Decision Tree
 
 
 ```r
@@ -257,7 +257,7 @@ confusionMatrix(predict1, myTesting$classe)
 # Out of sample error is about 35 %
 ```
 
-###Prediction with Random Forests
+### Prediction with Random Forests
 
 
 ```r
@@ -308,7 +308,7 @@ AS expected, Random Forests performed way better than the other ML algorithm wit
 
 
 
-##Prediction using Test Data Set
+## Prediction using Test Data Set
 
 Before prediction, I made the testing data of the same type as training data because I was getting error that the two data sets are of not same type while running random forest.
 
